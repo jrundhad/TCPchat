@@ -21,20 +21,26 @@ def main(path, username):
 
     print("Registration successful. Ready for Messaging!")
     while True:
+        print("here")
         sentence = input()
         events = sel.select(timeout=None)
         for key, mask in events:
-            if mask & selectors.EVENT_READ:
-                modifiedSentence = clientSocket.recv(1024)
-                print("From Server: ", modifiedSentence.decode())
             if mask & selectors.EVENT_WRITE:
+                print("write")
                 if not sentence:
                     sel.modify(clientSocket,selectors.EVENT_READ)
                 else:
+                    print("send")
                     clientSocket.send(sentence.encode())
+                    sel.modify(clientSocket,selectors.EVENT_READ)
+            if mask & selectors.EVENT_READ:
+                print("read")
+                modifiedSentence = clientSocket.recv(1024)
+                print("From Server: ", modifiedSentence.decode())
+                sel.modify(clientSocket,selectors.EVENT_WRITE)
         #modifiedSentence = clientSocket.recv(1024)
         #print("From Server: ", modifiedSentence.decode())
-        if(sentence=='quit'): break;
+        #if(sentence=='quit'): break;
     clientSocket.close()
 
 if __name__ == '__main__':

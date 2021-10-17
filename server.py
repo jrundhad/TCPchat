@@ -33,11 +33,19 @@ def read(conn, mask):
     data = conn.recv(1024)  
     if data:
         print(data.decode())
-        conn.sendall(data)  
+        #conn.sendall(data) 
+        broadcast(conn,data.decode()) 
     else:
         print('closing', conn)
         sel.unregister(conn)
         conn.close()
+
+def broadcast(conn, message):
+    message = message.encode()
+    for socket in sockets:
+        if socket != conn:
+            socket.send(message)
+
 
 def main():
 
@@ -57,9 +65,9 @@ def main():
             #callback = key.data
             #callback(key.fileobj, mask)
             if key.data is None:
-               accept(key.fileobj,mask)
-           # else:
-                #service_connection(key, mask)
+                accept(key.fileobj,mask)
+            else:
+                read(key.fileobj, mask)
 
 
 if __name__ == '__main__':

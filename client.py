@@ -1,10 +1,11 @@
 import socket
-from sys import argv
+import sys 
 import selectors
+import select
 import argparse
 from urllib.parse import urlparse
 
-sel = selectors.DefaultSelector()
+#sel = selectors.DefaultSelector()
 
 def main(path, username):
     url = urlparse(path)
@@ -16,32 +17,24 @@ def main(path, username):
     clientSocket.setblocking(False)
     print('Connection to server established. Sending intro message...')
     clientSocket.send(username.encode())
-    sel.register(clientSocket,selectors.EVENT_READ | selectors.EVENT_WRITE,)
+    #sel.register(clientSocket,selectors.EVENT_READ | selectors.EVENT_WRITE,)
 
 
     print("Registration successful. Ready for Messaging!")
     while True:
-        print("here")
-        sentence = input()
-        events = sel.select(timeout=None)
-        for key, mask in events:
-            if mask & selectors.EVENT_WRITE:
-                print("write")
-                if not sentence:
-                    sel.modify(clientSocket,selectors.EVENT_READ)
-                else:
-                    print("send")
-                    clientSocket.send(sentence.encode())
-                    sel.modify(clientSocket,selectors.EVENT_READ)
-            if mask & selectors.EVENT_READ:
-                print("read")
-                modifiedSentence = clientSocket.recv(1024)
-                print("From Server: ", modifiedSentence.decode())
-                sel.modify(clientSocket,selectors.EVENT_WRITE)
-        #modifiedSentence = clientSocket.recv(1024)
-        #print("From Server: ", modifiedSentence.decode())
-        #if(sentence=='quit'): break;
-    clientSocket.close()
+        sockets_list = [sys.stdin, clientSocket]
+        clientSocket.setblocking(False)
+        read_sockets,write_socket, error_socket = select.select(sockets_list,[],[])
+
+        for socks in read_sockets:
+            if socks == clientSocket:
+                message = socks.recv(1024)
+                print(message.decode())
+            else:
+                message = sys.stdin.readline()
+                message = "@" + username + " " + message
+                clientSocket.send(message.encode())
+                #print("<You>" + message)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chat Client')

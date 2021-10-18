@@ -13,13 +13,16 @@ def accept(sock,mask):
     sockets.append(conn)
     #print(sockets)
     print("Accepted connection from client Address: ", address )
-    sockets.append(conn)
+    #sockets.append(conn)
     conn.setblocking(False)
     data = conn.recv(1024)  
     if data:
         data=data.decode()
+        if data in users:
+            sendError(conn)
+            return;
         users.append(data)
-        print(users)
+        #print(users)
         print("Connection to client established, waiting to recive messages from user: ",data)
     else:
         print('closing', conn)
@@ -28,6 +31,7 @@ def accept(sock,mask):
     #print(sockets)
     #data = types.SimpleNamespace(addr=addr, inb=b'', outb=b'')
     sel.register(conn, selectors.EVENT_READ, read)
+    print(users)
 
 def read(conn, mask):
     data = conn.recv(1024)  
@@ -46,6 +50,13 @@ def broadcast(conn, message):
         if socket != conn:
             socket.send(message)
 
+def sendError(conn):
+    message = "401 Client already registered"
+    message = message.encode()
+    for socket in sockets:
+        if socket == conn:
+            socket.send(message)
+
 
 def main():
 
@@ -60,14 +71,17 @@ def main():
 
 
     while True:
-        events = sel.select(timeout=None)
-        for key, mask in events:
-            #callback = key.data
-            #callback(key.fileobj, mask)
-            if key.data is None:
-                accept(key.fileobj,mask)
-            else:
-                read(key.fileobj, mask)
+        try:
+            events = sel.select(timeout=None)
+            for key, mask in events:
+                #callback = key.data
+                #callback(key.fileobj, mask)
+                if key.data is None:
+                    accept(key.fileobj,mask)
+                else:
+                    read(key.fileobj, mask)
+        except BlockingIOError as e:
+            pass
 
 
 if __name__ == '__main__':
